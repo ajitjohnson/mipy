@@ -13,13 +13,16 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import multiprocessing as mp
 
-image_filepath= '/Users/aj/Desktop/exemplar-001/registration/exemplar-001.ome.tif'
-output_filepath = '/Users/aj/Desktop/exemplar-001'
 
+# Function to calculate  correlation
+def corr(reference_dna, testing_dna):
+    correlation = np.corrcoef(reference_dna.flat, testing_dna.flat)[0, 1]
+    return correlation
 
+# Main Function
 def dna_corr(image_filepath, output_filepath, file_name=None, channels_per_cycle=4, reference_dna_channel=0):
-    """
     
+    """   
 
     Parameters
     ----------
@@ -50,6 +53,7 @@ def dna_corr(image_filepath, output_filepath, file_name=None, channels_per_cycle
     dna_corr(image_filepath, output_filepath, file_name = 'image_1')
 
     """
+    
     # read image
     image = tiff.imread(image_filepath)
     # get number of cycles, using channels per cycle
@@ -57,16 +61,11 @@ def dna_corr(image_filepath, output_filepath, file_name=None, channels_per_cycle
     # reference DNA intensity
     reference_dna = image[reference_dna_channel]
 
-    # Function to calculate  correlation
-    def corr(reference_dna, testing_dna):
-        correlation = np.corrcoef(reference_dna.flat, testing_dna.flat)[0, 1]
-        return correlation
-    # Run the function
+    # Run the correlation function
     test_dna = image[[i * channels_per_cycle for i in list(range(num_cycle))]]
     pool = mp.Pool(mp.cpu_count())
     final_corr = pool.starmap(corr, [(reference_dna, testing_dna) for testing_dna in test_dna]) # Apply function
     pool.close()
-    
     
     ## Generate Figure
     fig, ax = plt.subplots()
@@ -91,5 +90,7 @@ def dna_corr(image_filepath, output_filepath, file_name=None, channels_per_cycle
     else:
         corrcoef_df.to_csv(output_filepath + "/" + file_name + "_dna_correlation.csv", index=False)
 
-# Run the function
+# Run the wrapping function
 dna_corr(image_filepath = sys.argv[1], output_filepath = sys.argv[2])
+
+
