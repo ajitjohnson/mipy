@@ -24,13 +24,14 @@ os.chdir("/Users/aj/Dropbox (Partners HealthCare)/Data/Vignesh_Lymphoma_tma/re_s
 #  Import SiPy package components
 sys.path.insert(1, '/Users/aj/Dropbox (Partners HealthCare)/packages/mipy')
 sys.path.insert(1, 'C:/Users/ajn16/Dropbox (Partners HealthCare)/packages/mipy')
-from preprocess.histocat_to_object import histocat_to_object
+from preprocess.mcmicro_to_object import mcmicro_to_object
 from plots.marker_expression_plot import marker_expression_plot
 from preprocess.rescale import rescale
 from phenotyping.phenotype_groups import phenotype_groups
 from phenotyping.phenotype_subcluster import phenotype_subcluster
 from processing.rename_clusters import rename_clusters
 from spatial.knn import knn
+from spatial.local_neighbourhood import local_neighbourhood
 from plots.napari import *
 from export.save_files import *
 #===============================================================================
