@@ -27,6 +27,10 @@ def rescale (adata, gate=None, return_gates=False, failed_markers=None, method='
         
         print('Scaling Image '+ str(adata.obs['ImageId'].unique()))
         
+        # Copy of the raw data if it exisits
+        if adata.raw is not None:
+            adata.X = adata.raw.X
+              
         data = pd.DataFrame(adata.X, columns = adata.var.index, index= adata.obs.index)      
         # Merging the manual gates and non-working markers togeather if any
         if gate is not None:
@@ -82,7 +86,8 @@ def rescale (adata, gate=None, return_gates=False, failed_markers=None, method='
                 m = data[marker].values
                 # Perform GMM
                 data_gm = m.reshape(-1, 1)
-                gmm = GaussianMixture(n_components=2, means_init=[[0],[1]],covariance_type='tied')
+                #gmm = GaussianMixture(n_components=2, means_init=[[0],[1]],covariance_type='tied')
+                gmm = GaussianMixture(n_components=2)
                 gmm.fit(data_gm)
                 gate = np.mean(gmm.means_)
                 
@@ -126,11 +131,20 @@ def rescale (adata, gate=None, return_gates=False, failed_markers=None, method='
             all_gmm_data = list(map(r_gmm_gating, gmm_markers)) # Apply function        
             all_gmm_data = pd.concat(all_gmm_data, axis=1, sort=False)        
             all_gmm_data.columns = gmm_markers
+        else:
+            all_gmm_data = pd.DataFrame()
         
         # Empty data frame to hold the results
         all_manual_data = pd.DataFrame()
         if len(m_markers) != 0:
-            m_data = np.log1p(data[m_markers])      
+            m_data = np.log1p(data[m_markers]) 
+            # Clip the data
+            def clipping (x):
+                clip = x.clip(lower =np.percentile(x,1), upper=np.percentile(x,99)).tolist()
+                return clip
+            # Run the function
+            m_data = m_data.apply(clipping)
+            
             def manual_gating (data,marker,gate):
                 # Print
                 print('Scaling ' + str(marker))
@@ -174,6 +188,10 @@ def rescale (adata, gate=None, return_gates=False, failed_markers=None, method='
             all_manual_data = list(map(r_manual_gating, m_markers)) # Apply function        
             all_manual_data = pd.concat(all_manual_data, axis=1, sort=False)        
             all_manual_data.columns = m_markers
+        
+        else:
+            all_manual_data = pd.DataFrame()
+            
             
         # If both manual and automatic gating was used, combine them into a single result    
         if not all_manual_data.empty:
@@ -197,8 +215,9 @@ def rescale (adata, gate=None, return_gates=False, failed_markers=None, method='
         all_scaled_data = pd.concat(scaled_data)
                    
     # Create a copy of the raw data
-    adata.raw = adata
-    
+    if adata.raw is None:
+        adata.raw = adata
+     
     # Replace with normalized data
     adata.X = all_scaled_data
     

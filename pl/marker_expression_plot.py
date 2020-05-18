@@ -10,7 +10,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns; sns.set(color_codes=True)
 import numpy as np
 
-def marker_expression_plot (adata, x='X_position', y='Y_position', gate = 0.5, color=None, save_figure= False, plot_all=False, out_dir=None, alpha= 0.3, figure_type="png", s=1, cmap='gist_heat', figsize=(12, 5)):
+def marker_expression_plot (adata, x='X_position', y='Y_position', gate = 0.5, 
+                            color=None, save_figure= False, plot_all=False, 
+                            out_dir=None, alpha= 0.3, figure_type="png", s=1, 
+                            cmap='gist_heat', figsize=(12, 5)):
     '''
     Parameters:
         adata- AnnData object containing both expression and marker expression predictions.

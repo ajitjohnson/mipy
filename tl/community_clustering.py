@@ -9,10 +9,11 @@ Clustering and Visualisation of nn_communities
 import anndata as ad
 import scanpy as sc
 import pandas as pd
+import numpy as np
 
 
 def community_clustering (adata, community_matrix='nn_communities',subset_image=None,unique_id='ImageId',
-                          n_neighbors=30, method='leiden',resolution=1,random_state=0,label=None):
+                          n_neighbors=30, method='leiden',resolution=1,random_state=0,label=None,smallest_cluster=None):
     """
     
 
@@ -39,6 +40,9 @@ def community_clustering (adata, community_matrix='nn_communities',subset_image=
         Change the initialization of the optimization. The default is 0.
     label : string, optional
         Name the resulting column that is returned. The default is the name of the method used.
+    smallest_cluster : int, optional
+        Merge small clusters into a single cluster. Any cluster containing fewer cells than 
+        the provided number will be grouped into a single category called 'trimmed_clusters'. The default is None.
 
     Returns
     -------
@@ -52,6 +56,15 @@ def community_clustering (adata, community_matrix='nn_communities',subset_image=
 
     """
     
+    # Remove previous iteration of clustering
+    if label is not None:
+        if label in adata.obs.columns:
+            del adata.obs[label]
+            del adata.uns[str(label)+'_colors']
+    elif method in adata.obs.columns:
+        del adata.obs[method]
+        del adata.uns[str(method)+'_colors']
+        
     
     # Subset a particular image if needed
     if subset_image is not None:
@@ -59,8 +72,7 @@ def community_clustering (adata, community_matrix='nn_communities',subset_image=
     else:
         bdata = adata
     
-    d = bdata.uns[community_matrix]
-    d = d.loc[bdata.obs.index].fillna(0)  
+    d = bdata.uns[community_matrix].fillna(0)   
     d = d[(d.T != 0).any()] # Drop all rows with zero   
     samples = d.index  # Get the cells that survived
     cdata = bdata[samples] # Do this so that the .obs of this can be used below
@@ -78,6 +90,15 @@ def community_clustering (adata, community_matrix='nn_communities',subset_image=
         sc.tl.leiden(bdata,resolution=resolution,random_state=random_state)
     if method == 'louvain':
         sc.tl.louvain(bdata,resolution=resolution,random_state=random_state)
+        
+    # Collapse small clusters into a single cluster
+    if smallest_cluster is not None:
+        passed_clusters = list(bdata.obs[method].value_counts()[bdata.obs[method].value_counts() < smallest_cluster].index)
+        # create dict
+        mapping = dict(zip(passed_clusters, np.repeat('trimmed_clusters',len(passed_clusters))))
+        bdata.obs[method] = bdata.obs[method].replace(mapping)
+        bdata.obs[method] = bdata.obs[method].astype('category')
+        
         
     # Merge the clustering results with adata
     original = adata.obs

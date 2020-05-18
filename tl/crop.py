@@ -7,7 +7,7 @@ Cropping regions of interest
 """
 
 
-def crop (adata):
+
 
 
 a = np.where(adata.obs['kmeans_renamed'] == 'tumor- PD1+', 1, 0)
@@ -16,13 +16,20 @@ c_col = ['red' if x==1 else 'black' for x in a]
 
       
 marker = 'SOX10'
-x = adata.obs['X_position']
-y = adata.obs['Y_position']
+
+sns.distplot(np.log1p(adata[:,marker].X))
+
+
+x = adata.obs['Y_position']
+y = adata.obs['X_position']
         
 m_idx = adata.var.index.tolist().index(marker) # Get the index of marker of interest
+
 tmp_dataframe = pd.DataFrame(adata.X)
+tmp_dataframe = pd.DataFrame(np.log1p(adata[:,marker].X))
+
 hue = np.array(tmp_dataframe[m_idx])
-hue = ['red' if x > 0.5 else 'black' for x in hue]
+hue = ['red' if x > 7.5 else 'black' for x in hue]
         
 # Plotting    
 fig, ax = plt.subplots()

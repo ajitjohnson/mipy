@@ -21,12 +21,14 @@ def view_image (image_path, adata, phenotype_column='phenotype',
                 overlay_phenotype=None,markers=None,
                 channel_names='default',
                 x='X_position',y='Y_position',point_size=10,
-                point_color=None,image_id=None):
+                point_color=None,image_id=None,seg_mask=None):
     """
     Parameters
     ----------
     image_path : string
         Location to the image file.
+    seg_mask: string
+        Location to the segmentation mask file. The default is None.
     adata : AnnData Object
     phenotype_column : string, optional
         Name of the column that contains the phenotype information. The default is 'phenotype'.
@@ -35,13 +37,13 @@ def view_image (image_path, adata, phenotype_column='phenotype',
     markers : TYPE, optional
         DESCRIPTION. The default is None.
     channel_names : list, optional
-        List of channels that need to be included. The default is adata.uns['all_markers'].
-    x : TYPE, optional
-        DESCRIPTION. The default is 'X_position'.
-    y : TYPE, optional
-        DESCRIPTION. The default is 'Y_position'.
-    point_size : TYPE, optional
-        DESCRIPTION. The default is 5.
+        List of channels in the image in the exact order as image. The default is adata.uns['all_markers'].
+    x : string, optional
+        X axis coordinate column name in AnnData object. The default is 'X_position'.
+    y : string, optional
+        Y axis coordinate column name in AnnData object. The default is 'Y_position'.
+    point_size : int, optional
+        point size in the napari plot. The default is 5.
 
     Returns
     -------
@@ -57,8 +59,7 @@ def view_image (image_path, adata, phenotype_column='phenotype',
         channel_names = adata.uns['all_markers']
     else:
         channel_names = channel_names
-    
-    
+        
     # Index of the marker of interest and corresponding names
     if markers is None:
         idx = list(range(len(channel_names)))
@@ -74,6 +75,10 @@ def view_image (image_path, adata, phenotype_column='phenotype',
     #image = imread(image_path, key = idx)
     #image = io.imread(image_path, key = idx).T
     image = tiff.imread(image_path, key = idx)
+    
+    # Load the segmentation mask
+    if seg_mask is not None:
+        seg_m = tiff.imread(seg_mask)
 
     
     #def load_image (image_path, key):
@@ -92,6 +97,9 @@ def view_image (image_path, adata, phenotype_column='phenotype',
     name = None if channel_names is None else channel_names,
     visible = False)
     
+    # Add the seg mask
+    if seg_mask is not None:
+        viewer.add_labels(seg_m, name='segmentation mask')
     
     # View image
     #with napari.gui_qt():

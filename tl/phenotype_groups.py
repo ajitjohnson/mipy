@@ -11,7 +11,8 @@ import numpy as np
 import pandas as pd
 
 
-def phenotype_groups (adata, phenotype, gate = 0.5, label="phenotype"):
+def phenotype_groups (adata, phenotype, gate = 0.5, label="phenotype", unique_id='ImageId', 
+                      pheno_threshold_percent=None, pheno_threshold_abs=None):
     
     '''
     Parameters:
@@ -232,6 +233,36 @@ def phenotype_groups (adata, phenotype, gate = 0.5, label="phenotype"):
     
     # replace nan to 'other cells'
     phenotype_labels[label] = phenotype_labels[label].fillna('Unknown')
+    
+    # Apply the phenotype threshold if given
+    if pheno_threshold_percent or pheno_threshold_abs is not None:
+        p = pd.DataFrame(phenotype_labels[label])
+        q = pd.DataFrame(adata.obs[unique_id])
+        p = q.merge(p, how='outer', left_index=True, right_index=True)
+        
+        # Function to remove phenotypes that are less than the given threshold
+        def remove_phenotype(p, ID, pheno_threshold_percent, pheno_threshold_abs):
+            d = p[p[unique_id] == ID]
+            x = pd.DataFrame(d.groupby([label]).size())
+            x.columns = ['val']
+            # FInd the phenotypes that are less than the given threshold
+            if pheno_threshold_percent is not None:
+                fail = list(x.loc[x['val'] < x['val'].sum() * pheno_threshold_percent/100].index)
+            if pheno_threshold_abs is not None:
+                fail = list(x.loc[x['val'] < pheno_threshold_abs].index)
+            d[label] = d[label].replace(dict(zip(fail, np.repeat('Unknown',len(fail)))))
+            # Return
+            return d
+        
+        # Apply function to all images
+        r_remove_phenotype = lambda x: remove_phenotype (p=p, ID=x, 
+                                                         pheno_threshold_percent=pheno_threshold_percent, 
+                                                         pheno_threshold_abs=pheno_threshold_abs) # Create lamda function 
+        final_phrnotypes= list(map(r_remove_phenotype, list(p[unique_id].unique()))) # Apply function
+        
+        final_phrnotypes = pd.concat(final_phrnotypes, join='outer') 
+        phenotype_labels = final_phrnotypes.reindex(adata.obs.index)
+        
         
     # Return to adata    
     adata.obs[label] = phenotype_labels[label]

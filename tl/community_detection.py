@@ -115,6 +115,7 @@ def community_detection (adata,x_coordinate='X_position',y_coordinate='Y_positio
         if nn_stat == 'count':
             # Normalize based on total cell count
             k = n.groupby(['neighbourhood','neighbour_phenotype']).size().unstack().fillna(0)
+            kraw = k
             k = k.div(k.sum(axis=1), axis=0)
         
         # Add distancce to neighbours
@@ -126,9 +127,10 @@ def community_detection (adata,x_coordinate='X_position',y_coordinate='Y_positio
             n = pd.concat([n, n_dist], axis=1, sort=False)          
             # Normalize based on total cell count
             k = n.groupby(['neighbourhood','neighbour_phenotype'])['dist'].mean().unstack().fillna(0)  
+            kraw = k
             k = k.div(k.sum(axis=1), axis=0)
         
-        return k
+        return [k, kraw]
         
         
     # Subset a particular image if needed
@@ -144,15 +146,32 @@ def community_detection (adata,x_coordinate='X_position',y_coordinate='Y_positio
     all_data = list(map(r_community, adata_list)) # Apply function 
 
 
-    # Merge all the results into a single dataframe
-    result = pd.concat(all_data, join='outer')        
-      
+    # Merge all the results into a single dataframe    
+    result = []
+    for i in range(len(all_data)):
+        result.append(all_data[i][0])
+    result = pd.concat(result, join='outer')  
+    
+    result_raw = []
+    for i in range(len(all_data)):
+        result_raw.append(all_data[i][1])
+    result_raw = pd.concat(result_raw, join='outer') 
+    
+    
     # Reindex the cells
     result = result.fillna(0)
     result = result.reindex(adata.obs.index)
     
+    result_raw = result_raw.fillna(0)
+    result_raw = result_raw.reindex(adata.obs.index)
+    
     # Add to adata
     adata.uns[label] = result
+    adata.uns[str(label)+"_raw"] = result_raw
+    
+    # Also add to adata.obs
+    for i in result.columns:
+        adata.obs[i] = result[i]
         
     # Return
     return adata
